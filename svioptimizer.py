@@ -1,8 +1,10 @@
 import numpy as np
 from scipy.optimize import minimize
+from enums import SVIParameterizationType
+
 
 class SVI:
-    def __init__(self, initial_params):
+    def __init__(self, parameterization, initial_params):
         """
         Initialize SVI model.
 
@@ -11,9 +13,9 @@ class SVI:
         """
         self.initial_params = initial_params
         self.optimal_params = None
+        self.parameterization = parameterization
 
-    @staticmethod
-    def svi_total_variance(params, k):
+    def svi_total_variance(self, params, k):
         """
         Compute total implied variance w(k) at log-moneyness k.
 
@@ -24,13 +26,13 @@ class SVI:
         Returns:
         - total variance(s)
         """
-        a, b, rho, m, sigma = params
-        k = np.asarray(k)  
+        if self.parameterization == SVIParameterizationType.RAW:
+            a, b, rho, m, sigma = params
+            k = np.asarray(k)  
 
-        return a + b * (rho * (k - m) + np.sqrt((k - m) ** 2 + sigma ** 2))
+            return a + b * (rho * (k - m) + np.sqrt((k - m) ** 2 + sigma ** 2))
 
-    @staticmethod
-    def svi_implied_vol(params, k):
+    def svi_implied_vol(self, params, k):
         """
         Compute implied volatility at log-moneyness k.
 
@@ -41,7 +43,7 @@ class SVI:
         Returns:
         - implied vol(s)
         """
-        w = SVI.svi_total_variance(params, k)
+        w = self.svi_total_variance(params, k)
         return np.sqrt(np.maximum(w, 1e-10))  # numerical safeguard
 
     def _mse_loss(self, params, k_market, iv_market):
@@ -62,16 +64,19 @@ class SVI:
         Returns:
         - optimal_params: optimized SVI parameters
         """
-        result = minimize(
-            lambda p: self._mse_loss(p, k_market, iv_market),
-            self.initial_params,
-            bounds=[
+        if self.parameterization == SVIParameterizationType.RAW:
+            bounds = [
                 (-1, 1),            # a
                 (1e-5, 10),         # b
                 (-0.999, 0.999),    # rho
                 (-5, 5),            # m
                 (1e-5, 5)           # sigma
             ]
+
+        result = minimize(
+            lambda p: self._mse_loss(p, k_market, iv_market),
+            self.initial_params,
+            bounds = bounds
         )
 
         self.optimal_params = result.x

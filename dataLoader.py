@@ -54,6 +54,8 @@ class yfDataLoader:
         
     def get_maturity(self, contract_symbol):
 
+        #TODO remove it, not necessary ciclying on maturity date already, just compute year fraction
+
         contract_symbol = contract_symbol.removeprefix(self.ticker)
         if contract_symbol[0] =="W":
             contract_symbol = contract_symbol[1:7]
