@@ -3,18 +3,26 @@ from scipy.optimize import minimize
 from enums import SVIParameterizationType
 
 
-class SVI:
-    def __init__(self, parameterization, initial_params):
+class SVI():
+    def __init__(self, parameterization, initial_params = None):
         """
         Initialize SVI model.
 
         Parameters:
         - initial_params: initial guess for SVI parameters (a, b, rho, m, sigma)
         """
-        self.initial_params = initial_params
-        self.optimal_params = None
         self.parameterization = parameterization
+        self.initial_params = self._default_initial_params() if initial_params is None else initial_params
+        self.optimal_params = None
+    
 
+    def _default_initial_params(self):
+        if self.parameterization == SVIParameterizationType.RAW:
+            return [0.01, 0.1, 0.0, 0.0, 0.1]  # a, b, rho, m, sigma
+        else:
+            raise NotImplementedError(f"No default for {self.parameterization}")
+        
+    
     def svi_total_variance(self, params, k):
         """
         Compute total implied variance w(k) at log-moneyness k.
